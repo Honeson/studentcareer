@@ -255,7 +255,7 @@ elif selected == "Resume Review":
         reader = PdfReader(uploaded_file)
         resume_text = ''.join(page.extract_text() for page in reader.pages)
         st.success("Resume uploaded successfully!")
-        st.write(resume_text)
+        #st.write(resume_text)
 
         # Pass the resume_text as the initial message to the bot
         display_chatbot(
