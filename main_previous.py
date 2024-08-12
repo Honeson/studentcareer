@@ -1,3 +1,5 @@
+
+
 import requests
 import streamlit as st
 from streamlit_option_menu import option_menu
@@ -8,6 +10,10 @@ from pypdf import PdfReader
 import logging
 
 logging.basicConfig(level=logging.INFO)
+
+# reader = PdfReader("resume.pdf")
+# number_of_pages = len(reader.pages)
+# text = ''.join(page.extract_text() for page in reader.pages)
 
 st.set_page_config(page_title="Student Career Counselor", page_icon="🎓", layout="wide")
 
@@ -39,7 +45,7 @@ st.markdown("""
 # Initialize session state variables
 if 'conversation_results' not in st.session_state:
     st.session_state.conversation_results = {
-        "Discover Your Strengths & Weaknesses": "",
+        "Strengths & Weaknesses": "",
         "Resume Review": "",
         "Academic Background": "",
         "Career Advice": ""
@@ -71,37 +77,18 @@ with st.sidebar:
         default_index=0,
     )
 
-def query_flowise(question, api_url, bot_type='general', override_config_text=None):
-    try:
-        if override_config_text:
-            if bot_type == 'resume':
-                payload = {
-                    "question": question,
-                    "overrideConfig": {"text": override_config_text}
-                }
-            elif bot_type == 'advice':
-                payload = {
-                    "question": question,
-                    "overrideConfig": {"profile": override_config_text}
-                }
-        else:
-             payload = {
-                "question": question,
-            }
+# def query_flowise(question):
+#     API_URL = "https://finflowise.onrender.com/api/v1/prediction/0113af8b-95c9-438f-b3fd-6db650058e9c"
+#     response = requests.post(API_URL, json={"question": question})
+#     return response.json()
 
-        logging.info(f"Sending request to {api_url} with payload: {payload}")
-        response = requests.post(api_url, json=payload)
-        response.raise_for_status()  # Raises an HTTPError for bad responses
-        result = response.json()
-        logging.info(f"Received response: {result}")
-        return result
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error in API request: {e}")
-        return {"text": f"An error occurred: {str(e)}"}
-    except Exception as e:
-        logging.error(f"Unexpected error: {e}")
-        return {"text": "An unexpected error occurred"}
-    
+def query_flowise(question, api_url):
+    response = requests.post(api_url, json={"question": question})
+    return response.json()
+
+# def query_flowise_resume(question, api_url, resume_text):
+#     response = requests.post(api_url, json={"question": question, "overrideConfig": {"text": resume_text}})
+#     return response.json()
 
 def query_flowise_resume(question, api_url, resume_text):
     try:
@@ -121,29 +108,78 @@ def query_flowise_resume(question, api_url, resume_text):
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
         return {"text": "An unexpected error occurred"}
-    
-def query_flowise_advice(question, api_url, profile_info):
-    try:
-        payload = {
-            "question": question,
-            "overrideConfig": {"profile": profile_info}
-        }
-        logging.info(f"Sending request to {api_url} with payload: {payload}")
-        response = requests.post(api_url, json=payload)
-        response.raise_for_status()
-        result = response.json()
-        logging.info(f"Received response: {result}")
-        return result
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error in API request: {e}")
-        return {"text": f"An error occurred: {str(e)}"}
-    except Exception as e:
-        logging.error(f"Unexpected error: {e}")
-        return {"text": "An unexpected error occurred"}
+
+
+# def display_chatbot(title, description, api_url=None, bot_type='general', extra_data=None):
+#     st.header(title)
+#     st.write(description)
+
+#     # Chat input
+#     user_input = st.chat_input("Your message:", key=f"{title}_input")
+
+
+#     # Initialize chat history
+#     if f"{title}_messages" not in st.session_state:
+#         st.session_state[f"{title}_messages"] = []
+
+#     # Display chat messages from history
+#     for message in st.session_state[f"{title}_messages"]:
+#         with st.chat_message(message["role"]):
+#             st.markdown(message["content"])
+
+
+#     if user_input:
+#         # Display user message
+#         with st.chat_message("user"):
+#             st.markdown(user_input)
+#         # Add user message to chat history
+#         st.session_state[f"{title}_messages"].append({"role": "user", "content": user_input})
+
+#         # Generate and display AI response
+#         with st.chat_message("assistant"):
+#             if api_url:
+#                 if bot_type == 'general':
+#                     response = query_flowise(user_input, api_url)
+#                 elif bot_type == 'resume':
+#                     response = query_flowise_resume(user_input, api_url, extra_data)
+#                 elif bot_type == 'advice':
+#                     response = query_flowise_advice(user_input, api_url, extra_data)
+#                 ai_response = response.get('text', 'Sorry, I couldn\'t process that.')
+#             else:
+#                 ai_response = "This chatbot is not yet implemented for this section."
+#             st.markdown(ai_response)
+#         # Add AI response to chat history
+#         st.session_state[f"{title}_messages"].append({"role": "assistant", "content": ai_response})
+
+#     # Clear chat button
+#     if st.button("Clear Chat", key=f"{title}_clear"):
+#         st.session_state[f"{title}_messages"] = []
+#         st.rerun()
+
+#      # Finish conversation button
+#     if st.button("Finish Conversation", key=f"{title}_finish"):
+#         st.success(f"Conversation for {title} finished. You can now move to the next section.")
 
 def display_chatbot(title, description, api_url=None, bot_type='general', extra_data=None):
     st.header(title)
     st.write(description)
+
+    # Chat input
+    user_input = st.text_input("Your message:", key=f"{title}_input")
+
+    col1, col2, col3 = st.columns([1, 1, 2])
+    with col1:
+        if st.button("Send", key=f"{title}_send"):
+            if user_input:
+                process_user_input(title, user_input, api_url, bot_type, extra_data)
+    with col2:
+        if st.button("Clear Chat", key=f"{title}_clear"):
+            st.session_state[f"{title}_messages"] = []
+            st.session_state.conversation_results[title] = ""
+            st.rerun()
+    with col3:
+        if st.button("Finish Conversation", key=f"{title}_finish"):
+            st.success(f"Conversation for {title} finished. You can now move to the next section.")
 
     # Initialize chat history
     if f"{title}_messages" not in st.session_state:
@@ -154,44 +190,27 @@ def display_chatbot(title, description, api_url=None, bot_type='general', extra_
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Placeholder for input field
-    input_placeholder = st.empty()
-
-    # Render the input field inside the placeholder
-    user_input = input_placeholder.text_input("Your message:", key=f"{title}_input")
-
-    # Send button logic
-    if st.button("Send", key=f"{title}_send"):
-        if user_input:
-            process_user_input(title, user_input, api_url, bot_type, extra_data)
-            # Clear the input field after sending a message by re-rendering the placeholder
-            input_placeholder.empty()
-            st.rerun()
-
-    # Clear Chat and Finish Conversation buttons at the bottom
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("Clear Chat", key=f"{title}_clear"):
-            st.session_state[f"{title}_messages"] = []
-            st.session_state.conversation_results[title] = ""
-            st.rerun()
-    with col2:
-        if st.button("Finish Conversation", key=f"{title}_finish"):
-            st.success(f"Conversation for {title} finished. You can now move to the next section.")
-
-
-
 def process_user_input(title, user_input, api_url, bot_type, extra_data):
     # Display user message
     with st.chat_message("user"):
         st.markdown(user_input)
+    # Add user message to chat history
     st.session_state[f"{title}_messages"].append({"role": "user", "content": user_input})
 
     # Generate and display AI response
     with st.chat_message("assistant"):
-        response = query_flowise(user_input, api_url, bot_type, override_config_text=extra_data)
-        ai_response = response.get('text', 'Sorry, I couldn\'t process that.')
+        if api_url:
+            if bot_type == 'general':
+                response = query_flowise(user_input, api_url)
+            elif bot_type == 'resume':
+                response = query_flowise_resume(user_input, api_url, extra_data)
+            elif bot_type == 'advice':
+                response = query_flowise_advice(user_input, api_url, extra_data)
+            ai_response = response.get('text', 'Sorry, I couldn\'t process that.')
+        else:
+            ai_response = "This chatbot is not yet implemented for this section."
         st.markdown(ai_response)
+    # Add AI response to chat history
     st.session_state[f"{title}_messages"].append({"role": "assistant", "content": ai_response})
 
     # Save the conversation summary
@@ -204,6 +223,7 @@ def process_user_input(title, user_input, api_url, bot_type, extra_data):
 STRENGTHS_WEAKNESSES_API = "https://finflowise.onrender.com/api/v1/prediction/0113af8b-95c9-438f-b3fd-6db650058e9c"
 ACADEMIC_BACKGROUND_API = "https://finflowise.onrender.com/api/v1/prediction/7f1cc35a-bc96-4f85-a1f4-f8fceaca63f1"
 RESUME_API_URL = "https://finflowise.onrender.com/api/v1/prediction/0d1787e4-e1f3-422c-9425-9a52a15f0b9f"
+
 
 if selected == "Home":
     st.title("Welcome to Student Career Counselor")
@@ -262,31 +282,16 @@ elif selected == "Resume Review":
 
 elif selected == "Academic Background":
     display_chatbot(
-        "Academic Background",
+        "Academic Profile Assessment",
         "Let's discuss your educational journey and academic interests.",
         api_url=ACADEMIC_BACKGROUND_API
     )
 
 elif selected == "Career Advice":
-    st.header("Personalized Career Recommendations")
-    st.write("Based on your previous conversations, we'll provide personalized career advice.")
-
-    # Combine all previous conversation results
-    all_conversations = "\n\n".join([f"{key}:\n{value}" for key, value in st.session_state.conversation_results.items() if value])
-    
-
-    if all_conversations:
-        st.write(all_conversations)
-        display_chatbot(
-            "Career Advice",
-            "Ask for career advice based on your profile.",
-            api_url=CAREER_ADVICE_API_URL,
-            bot_type='advice',
-            extra_data=all_conversations
-        )
-        
-    else:
-        st.warning("Please complete the other sections before seeking career advice.")
+    display_chatbot(
+        "Personalized Career Recommendations",
+        "Based on your profile, we'll suggest suitable career paths."
+    )
 
 # Add a footer
 st.markdown("---")
