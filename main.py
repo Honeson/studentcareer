@@ -50,9 +50,9 @@ if 'resume_text' not in st.session_state:
 
 # Sidebar for navigation using streamlit_option_menu
 with st.sidebar:
-    st.title("🎓 Student Counselor")
+    st.title("🎓 Career Counselor")
     selected = option_menu(
-        menu_title="Navigation",
+        menu_title=None,
         options=[
             "Home", 
             "Strengths & Weaknesses", 
